@@ -416,15 +416,5 @@ To use a different agent:
 
 ## Citation
 
-If you use this codebase, please cite:
-- STEVE-1: [Paper/Citation]
-- MCU Benchmark: [Paper/Citation]
-- MineStudio: [Paper/Citation]
-
-## License
-
-[Add license information]
-
-## Contact
-
-[Add contact information or issues link]
+Thank you to the creators of MCU, MineStudio, and STEVE-1. We relied heavily on their research. 
+https://github.com/CraftJarvis
