@@ -213,6 +213,241 @@ Results are saved to:
 MCU_benchmark/output/steve_simple/collect_wood/episode_1.mp4
 ```
 
+## Usage Commands
+
+### Running White Agents to Complete Tasks
+
+White agents (e.g., STEVE-1) are the AI agents that perform tasks in Minecraft. Here are the commands to run them:
+
+#### Using Docker (Recommended)
+
+```bash
+# Run a single task using the convenience script
+./run.sh
+
+# Or run directly with Docker
+docker run --rm --platform linux/amd64 --memory=20g \
+  -v $(pwd):/workspace -e AUTO_DOWNLOAD_ENGINE=1 \
+  mcu-benchmark-cpu \
+  bash -c "cd /workspace && python3 run_agentbeats_evaluation.py --task collect_wood --difficulty simple"
+```
+
+#### Using Python Directly (Inside Docker Container)
+
+```bash
+# Single task
+python3 run_agentbeats_evaluation.py --task collect_wood --difficulty simple
+
+# Multiple tasks (all tasks in a difficulty level)
+python3 run_agentbeats_evaluation.py --difficulty simple
+
+# Custom task with specific parameters
+python3 run_agentbeats_evaluation.py \
+  --task build_house \
+  --difficulty hard \
+  --max-steps 1200 \
+  --device cuda
+```
+
+**Available Options:**
+- `--task`: Task name (e.g., "collect_wood", "build_house"). Omit to run all tasks.
+- `--difficulty`: Task difficulty level (`simple` or `hard`)
+- `--max-steps`: Maximum steps per episode (default: 600)
+- `--output-dir`: Custom output directory (default: `MCU_benchmark/output/steve_{difficulty}`)
+- `--device`: Device to use (`auto`, `cuda`, `mps`, `cpu`)
+
+**Output:** Videos are saved to `MCU_benchmark/output/steve_{difficulty}/{task_name}/episode_1.mp4`
+
+### Running Green Agent to Evaluate White Agents
+
+The Green Agent (MCU Benchmark evaluation system) evaluates white agent performance using vision-language models. Evaluation can be done on individual videos or in batch.
+
+#### Individual Video Evaluation
+
+```bash
+cd MCU_benchmark/auto_eval
+
+# Evaluate a single video
+python individual_video_rating.py \
+  --video_path='../output/steve_simple/collect_wood/episode_1.mp4' \
+  --criteria_path='./criteria_files/collect_wood.txt'
+```
+
+**Requirements:**
+- Set `OPENAI_API_KEY` environment variable
+- Video file must exist
+- Criteria file must exist in `criteria_files/` directory
+
+**Output:** Results saved to `vlm_rating_res/{task_name}.json`
+
+#### Batch Video Evaluation
+
+```bash
+cd MCU_benchmark/auto_eval
+
+# Evaluate all videos in a directory
+python batch_video_rating.py \
+  --videos_path='../output/steve_simple/' \
+  --criteria_files_path='./criteria_files/'
+```
+
+**Directory Structure Required:**
+```
+videos_path/
+├── collect_wood/
+│   └── episode_1.mp4
+├── build_house/
+│   └── episode_1.mp4
+└── ...
+
+criteria_files_path/
+├── collect_wood.txt
+├── build_house.txt
+└── ...
+```
+
+**Output:** 
+- Individual results: `vlm_rating_res/{task_name}.json`
+- Summary metrics printed to console (averages across all tasks)
+
+#### Video Comparison (Comparing Two Agents)
+
+```bash
+cd MCU_benchmark/auto_eval
+
+# Compare two videos side-by-side
+python video_comparison.py \
+  --video_path_a='./eval_video/build_gate/build_gate_5.mp4' \
+  --video_path_b='./eval_video/build_gate/build_gate_7.mp4' \
+  --criteria_path='./criteria_files/build_gate.txt'
+```
+
+**Output:** Comparison results saved to `vlm_rating_res/{task_name}.json`
+
+### Testing Green Agent's Evaluation Results
+
+To test the green agent's evaluation system on known test cases:
+
+#### Using Provided Test Videos
+
+```bash
+cd MCU_benchmark/auto_eval
+
+# Test on individual test videos
+python individual_video_rating.py \
+  --video_path='./eval_video/build_gate/build_gate_5.mp4' \
+  --criteria_path='./criteria_files/build_gate.txt'
+
+python individual_video_rating.py \
+  --video_path='./eval_video/build_pillar/build_pillar_0.mp4' \
+  --criteria_path='./criteria_files/build_pillar.txt'
+
+python individual_video_rating.py \
+  --video_path='./eval_video/combat_spider/combat_spider_7.mp4' \
+  --criteria_path='./criteria_files/combat_spider.txt'
+```
+
+#### Batch Testing on All Test Videos
+
+```bash
+cd MCU_benchmark/auto_eval
+
+# Test on all provided test videos
+python batch_video_rating.py \
+  --videos_path='./eval_video/' \
+  --criteria_files_path='./criteria_files/'
+```
+
+**Test Videos Available:**
+- `eval_video/build_gate/` - Gate building task videos
+- `eval_video/build_pillar/` - Pillar building task videos  
+- `eval_video/combat_spider/` - Spider combat task videos
+
+**Expected Output:**
+- JSON files with scores (0-10) for each evaluation dimension:
+  - Task Progress
+  - Action Control
+  - Error Recognition and Correction
+  - Creative Attempts
+  - Task Completion Efficiency
+  - Material Selection and Usage
+
+### Reproducing Original Benchmark Results
+
+To reproduce the results from the original MCU benchmark:
+
+#### 1. Run All Tasks for a Difficulty Level
+
+```bash
+# Run all simple tasks
+python3 run_agentbeats_evaluation.py --difficulty simple
+
+# Run all hard tasks
+python3 run_agentbeats_evaluation.py --difficulty hard
+```
+
+#### 2. Evaluate All Generated Videos
+
+```bash
+cd MCU_benchmark/auto_eval
+
+# Evaluate simple task results
+python batch_video_rating.py \
+  --videos_path='../output/steve_simple/' \
+  --criteria_files_path='./criteria_files/'
+
+# Evaluate hard task results
+python batch_video_rating.py \
+  --videos_path='../output/steve_hard/' \
+  --criteria_files_path='./criteria_files/'
+```
+
+#### 3. Compare with Baseline Results
+
+Baseline performance metrics are documented in `docs/baseline.md`. Expected STEVE-1 performance:
+
+**Simple Mode:**
+- Task Progress: 31.4%
+- Action Control: 31.9%
+- Error Recognition: 13.1%
+- Creative Attempts: 6.4%
+- Task Efficiency: 23.2%
+- Material Usage: 35.6%
+
+**Hard Mode:**
+- Task Progress: 23.1%
+- Action Control: 22.6%
+- Error Recognition: 6.9%
+- Creative Attempts: 6.0%
+- Task Efficiency: 16.6%
+- Material Usage: 24.5%
+
+#### 4. Full Benchmark Reproduction Pipeline
+
+```bash
+# Step 1: Run all tasks (inside Docker)
+docker run --rm --platform linux/amd64 --memory=20g \
+  -v $(pwd):/workspace -e AUTO_DOWNLOAD_ENGINE=1 \
+  mcu-benchmark-cpu \
+  bash -c "cd /workspace && python3 run_agentbeats_evaluation.py --difficulty simple"
+
+# Step 2: Evaluate all videos (requires OPENAI_API_KEY)
+cd MCU_benchmark/auto_eval
+export OPENAI_API_KEY="your-api-key-here"
+python batch_video_rating.py \
+  --videos_path='../output/steve_simple/' \
+  --criteria_files_path='./criteria_files/'
+
+# Step 3: Review results
+ls -la vlm_rating_res/
+cat vlm_rating_res/collect_wood.json
+```
+
+**Note:** Full benchmark reproduction requires:
+- Running all 83 simple tasks or 82 hard tasks
+- OpenAI API access for VLM-based evaluation
+- Significant compute time (several hours for all tasks)
+
 ## Documentation
 
 ### Main Documentation Files
