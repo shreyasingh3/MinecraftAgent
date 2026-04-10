@@ -1,3 +1,7 @@
+## Overview
+
+This project builds an evaluation framework for benchmarking AI agents in Minecraft environments. The goal is to measure progress toward tasks and improve how agent performance is scored.
+
 # Minecraft Agents - STEVE-1 Evaluation System
 
 A complete system for evaluating Minecraft AI agents using the MCU (Minecraft Understanding) benchmark. This repository integrates STEVE-1 (a vision-language model agent) with the AgentBeats evaluation framework to run and score agent performance on Minecraft tasks.
